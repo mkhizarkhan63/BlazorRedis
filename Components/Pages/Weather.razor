@@ -1,0 +1,81 @@
+﻿@page "/weather"
+@rendermode InteractiveServer
+@inject IDistributedCache cache
+<PageTitle>Counter</PageTitle>
+
+
+
+<h1>Weather</h1>
+
+<p>This component demonstrates showing data.</p>
+<button class="btn btn-primary" @onclick="LoadWeatherForecast">Click me</button>
+
+
+@if (loadLocation == "" && forecasts == null)
+{
+    <p><em>Click the button to load the forecast</em></p>
+}
+else if (forecasts == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div class="h3 @isCacheData">@loadLocation</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Temp. (C)</th>
+                <th>Temp. (F)</th>
+                <th>Summary</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var forecast in forecasts)
+            {
+                <tr>
+                    <td>@forecast.Date.ToShortDateString()</td>
+                    <td>@forecast.TemperatureC</td>
+                    <td>@forecast.TemperatureF</td>
+                    <td>@forecast.Summary</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@code {
+    private WeatherForecast[]? forecasts;
+    private string loadLocation = "";
+    private string isCacheData = "";
+    private async Task LoadWeatherForecast()
+    {
+        try
+        {
+
+       
+        forecasts = null;
+        loadLocation = "";
+
+        string recordKey = $"WeatherForCast_{DateTime.Now.ToString("yyyyMMdd_hhmm")}";
+            forecasts = await cache.GetRecordAsync<WeatherForecast[]>(recordKey);
+
+        if (forecasts is null)
+        {
+            forecasts = GetOriginalData.OriginalData();
+            loadLocation = $"Loaded from the Api at {DateTime.Now}";
+            await cache.SetRecordAsync<WeatherForecast[]>(recordKey, forecasts);
+        }
+        else
+        {
+            loadLocation = $"Loaded from the cache at {DateTime.Now}";
+            isCacheData = "text-danger";
+        }
+        }
+        catch (Exception ex)
+        {
+
+            throw ex;
+        }
+    }
+}
